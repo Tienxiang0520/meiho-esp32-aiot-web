@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>AIoT 智慧控制面板</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      text-align: center;
+      background-color: #f0f2f5;
+      margin-top: 60px;
+    }
+    input, button {
+      font-size: 18px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #0078d7;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover { background-color: #005fa3; }
+  </style>
+</head>
+<body>
+  <h1>💡 AIoT LED 控制面板</h1>
+  <form method="POST" action="/control">
+    <input type="text" name="command" placeholder="輸入：開燈 或 關燈" required>
+    <button type="submit">送出</button>
+  </form>
+  {% if result %}
+  <p>ESP32 回覆：{{ result }}</p>
+  {% endif %}
+</body>
+</html>
