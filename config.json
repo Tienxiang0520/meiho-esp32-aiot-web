@@ -1,0 +1,16 @@
+{
+  "serial": {
+    "port": "COM6",
+    "baudrate": 115200
+  },
+  "ollama": {
+    "url": "http://localhost:11434/api/chat",
+    "model": "phi3:mini",
+    "options": {
+      "num_predict": 50,
+      "temperature": 0.2,
+      "repeat_penalty": 1.2
+    }
+  },
+  "system_prompt": "你是一個用於控制ESP32的AI助手。回答只能是「開燈」、「關燈」或「無法判斷」。禁止輸出解釋、程式碼、標點符號。"
+}
