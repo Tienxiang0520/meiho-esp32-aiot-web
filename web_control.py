@@ -1,28 +1,71 @@
 from flask import Flask, render_template, request
-import paho.mqtt.publish as publish
-import os
+import requests, os, socket, json
 
 app = Flask(__name__)
 
-MQTT_SERVER = "broker.hivemq.com"
-TOPIC = "/esp32/led"
+# 載入設定檔
+with open("config.json", "r", encoding="utf-8") as f:
+    config = json.load(f)
 
+ESP_IP = "172.25.12.110"     # ⚠️ 改成你的 ESP32 IP
+ESP_PORT = 8266
+OLLAMA_URL = config["ollama"]["url"]
+MODEL = config["ollama"]["model"]
+OPTIONS = config["ollama"]["options"]
+SYSTEM_PROMPT = config["system_prompt"]
+
+# ======== 向 Ollama 發問 ========
+def ask_ollama(prompt):
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt}
+        ],
+        "stream": False,
+        "options": OPTIONS
+    }
+
+    try:
+        response = requests.post(OLLAMA_URL, json=payload)
+        data = response.json()
+        msg = data.get("message", {}).get("content", data.get("response", "")).strip()
+        print(f"🦙 AI 回覆：{msg}")
+        return msg
+    except Exception as e:
+        print("❌ Ollama 連線失敗：", e)
+        return ""
+
+# ======== 傳送指令到 ESP32 ========
+def send_to_esp32(command):
+    try:
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect((ESP_IP, ESP_PORT))
+        client.sendall((command + "\n").encode())
+        reply = client.recv(1024).decode().strip()
+        client.close()
+        return reply
+    except Exception as e:
+        return f"連線失敗：{e}"
+
+# ======== Flask 頁面路由 ========
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/control', methods=['POST'])
 def control():
-    command = request.form['command']
-    if "開" in command:
-        publish.single(TOPIC, "LED_ON", hostname=MQTT_SERVER)
-        result = "已發送：LED_ON"
-    elif "關" in command:
-        publish.single(TOPIC, "LED_OFF", hostname=MQTT_SERVER)
-        result = "已發送：LED_OFF"
+    user_input = request.form['command']
+    ai_reply = ask_ollama(user_input)
+
+    if any(k in ai_reply for k in ["開燈", "打開", "亮"]):
+        result = send_to_esp32("LED_ON")
+    elif any(k in ai_reply for k in ["關燈", "關閉", "熄滅"]):
+        result = send_to_esp32("LED_OFF")
     else:
-        result = "未知指令"
-    return render_template('index.html', result=result)
+        result = "AI 無法判斷"
+
+    return render_template('index.html', result=f"🦙 AI：{ai_reply} ｜ 💡 ESP32：{result}")
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
