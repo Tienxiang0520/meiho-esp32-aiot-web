@@ -11,3 +11,11 @@
 2. 登入 [Render.com](https://render.com)。
 3. 建立新 Web Service，來源選你的 GitHub repo。
 4. 確保 Build Command 與 Start Command 設為：
+
+
+## 快速上傳
+
+git add .
+git commit -m "update"
+git push
+
