@@ -7,11 +7,11 @@
 使用者 → Flask 雲端伺服器 → Ollama AI 模型 → Flask 判斷 → MQTT → ESP32 → LED 控制
 
 ## 部署環境
-• 雲端伺服器：Render (Python 3.11)
-• 本地 AI 模型：Ollama (phi3:mini)
-• 通訊協定：MQTT（HiveMQ 公開 Broker）
-• 開發語言：Python (Flask)、C++ (Arduino)
-• 控制硬體：ESP32-S 模組，GPIO4 控制 LED
+1. 雲端伺服器：Render (Python 3.11)
+2. 本地 AI 模型：Ollama (phi3:mini)
+3. 通訊協定：MQTT（HiveMQ 公開 Broker）
+4. 開發語言：Python (Flask)、C++ (Arduino)
+5. 控制硬體：ESP32-S 模組，GPIO4 控制 LED
 
 
 
