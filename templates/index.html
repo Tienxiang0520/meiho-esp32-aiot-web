@@ -2,36 +2,28 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>AIoT 智慧控制面板</title>
-  <style>
-    body {
-      font-family: "Microsoft JhengHei", sans-serif;
-      text-align: center;
-      background-color: #f0f2f5;
-      margin-top: 60px;
-    }
-    input, button {
-      font-size: 18px;
-      padding: 8px 14px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background-color: #0078d7;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover { background-color: #005fa3; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIoT 智慧燈控制面板</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <h1>💡 AIoT LED 控制面板</h1>
-  <form method="POST" action="/control">
-    <input type="text" name="command" placeholder="輸入：開燈 或 關燈" required>
-    <button type="submit">送出</button>
-  </form>
-  {% if result %}
-  <p>ESP32 回覆：{{ result }}</p>
-  {% endif %}
+  <div class="container">
+    <h1>💡 AIoT 智慧燈控制系統</h1>
+
+    <form method="POST" action="/control">
+      <input type="text" name="command" placeholder="輸入：開燈 或 關燈" required>
+      <button type="submit">送出</button>
+    </form>
+
+    {% if result %}
+      <div class="result">
+        <p>{{ result }}</p>
+      </div>
+    {% endif %}
+
+    <footer>
+      <p>開發者：翔田 ｜ 指導：ChatGPT（GPT-5）</p>
+    </footer>
+  </div>
 </body>
 </html>
