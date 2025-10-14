@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request
+import paho.mqtt.publish as publish
 import requests, os, socket, json
 
 app = Flask(__name__)
@@ -39,14 +40,15 @@ def ask_ollama(prompt):
 # ======== 傳送指令到 ESP32 ========
 def send_to_esp32(command):
     try:
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect((ESP_IP, ESP_PORT))
-        client.sendall((command + "\n").encode())
-        reply = client.recv(1024).decode().strip()
-        client.close()
-        return reply
+        publish.single(
+            topic="/esp32/led",
+            payload=command,
+            hostname="broker.hivemq.com"
+        )
+        return f"已發送 {command}"
     except Exception as e:
-        return f"連線失敗：{e}"
+        return f"MQTT 發送失敗：{e}"
+
 
 # ======== Flask 頁面路由 ========
 @app.route('/')
