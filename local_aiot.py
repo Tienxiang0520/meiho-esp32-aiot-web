@@ -45,8 +45,12 @@ def send_mqtt(cmd):
     try:
         publish.single("/esp32/led", cmd, hostname=MQTT_SERVER)
         print(f"✅ 已發送 MQTT 指令：{cmd}")
+        # 回報到 Render
+        requests.post("https://meiho-esp32-aiot-web.onrender.com/update_status",
+                      json={"status": f"{cmd} done"})
     except Exception as e:
         print("❌ MQTT 發送失敗：", e)
+
 
 # ======== 從 Render 抓指令並處理 ========
 def poll_render():
