@@ -3,8 +3,8 @@ import os
 
 app = Flask(__name__)
 
+# 最新 AI 指令與狀態
 latest_command = {"command": None, "status": "idle"}
-
 
 @app.route('/')
 def index():
@@ -14,6 +14,7 @@ def index():
 def control():
     user_input = request.form['command']
     latest_command["command"] = user_input
+    latest_command["status"] = "pending"  # 等上位機處理
     return render_template('index.html', result=f"📩 指令已送出：{user_input}")
 
 @app.route('/latest_command')
@@ -22,11 +23,17 @@ def get_command():
 
 @app.route('/update_status', methods=['POST'])
 def update_status():
+    """上位機回報完成狀態"""
     data = request.get_json()
     latest_command["status"] = data.get("status", "unknown")
-    print("🔄 收到上位機回報：", data)
-    return {"result": "ok"}
 
+    # ✅ 如果收到 done，清空狀態
+    if "done" in latest_command["status"]:
+        print("🔄 上位機處理完成，清空指令狀態")
+        latest_command["command"] = None
+        latest_command["status"] = "idle"
+
+    return {"result": "ok"}
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
