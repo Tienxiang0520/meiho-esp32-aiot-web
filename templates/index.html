@@ -5,24 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AIoT 智慧燈控制面板</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='script.js') }}"></script>
 </head>
 <body>
   <div class="container">
     <h1>💡 AIoT 智慧燈控制系統</h1>
 
-    <form method="POST" action="/control">
-      <input type="text" name="command" placeholder="輸入：開燈 或 關燈" required>
-      <button type="submit">送出</button>
-    </form>
+    <div class="form-area">
+      <input id="commandInput" type="text" placeholder="輸入：開燈 或 關燈" required>
+      <button id="sendBtn">送出</button>
+    </div>
 
-    {% if result %}
-      <div class="result">
-        <p>{{ result }}</p>
-      </div>
-    {% endif %}
+    <div id="status" class="result">
+      <p>請輸入指令來控制燈光。</p>
+    </div>
 
     <footer>
-      <p>開發者：翔田 ｜ 指導：ChatGPT（GPT-5）</p>
+      <p>開發者：翔田 ｜ 顧問：ChatGPT（GPT-5）</p>
     </footer>
   </div>
 </body>
