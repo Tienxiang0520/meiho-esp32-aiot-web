@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-import os
+import os, threading, time
 
 app = Flask(__name__)
 
@@ -23,16 +23,18 @@ def get_command():
 
 @app.route('/update_status', methods=['POST'])
 def update_status():
-    """上位機回報完成狀態"""
     data = request.get_json()
     latest_command["status"] = data.get("status", "unknown")
+    print("🔄 收到上位機回報：", latest_command["status"])
 
-    # ✅ 如果收到 done，清空狀態
-    if "done" in latest_command["status"]:
-        print("🔄 上位機處理完成，清空指令狀態")
+    # ✅ 延遲清空（給前端輪詢時間）
+    def clear_status():
+        time.sleep(5)
         latest_command["command"] = None
         latest_command["status"] = "idle"
+        print("🧹 狀態已清空，準備下一指令")
 
+    threading.Thread(target=clear_status).start()
     return {"result": "ok"}
 
 if __name__ == '__main__':
