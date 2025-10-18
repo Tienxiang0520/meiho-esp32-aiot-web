@@ -1,17 +1,14 @@
 from flask import Flask, render_template, request, jsonify
-import os, threading, time
-import paho.mqtt.publish as publish # <-- 新增
-
+import os
+import paho.mqtt.publish as publish 
 
 app = Flask(__name__)
 
 # MQTT 設定
-# 💡 注意：由於 Render 環境中無法直接讀取本地 config.json，這裡需要直接寫死或使用 Render 的環境變數
-# 這裡先使用您 local_aiot.py 中的 HiveMQ 公開 Broker
 MQTT_SERVER = "broker.hivemq.com" 
-# 設置一個專門用來通知上位機的通知主題 (請確保此主題不易被猜測，增加安全性)
 NOTIFY_TOPIC = "meiho-aiot-notify/new_command_available"
-# 最新 AI 指令與狀態
+
+# 💡 [保留] 最新 AI 指令與狀態 (PC 仍需從這裡 GET 指令)
 latest_command = {"command": None, "status": "idle"}
 
 @app.route('/')
@@ -20,38 +17,35 @@ def index():
 
 @app.route('/control', methods=['POST'])
 def control():
+    # 這是前端按鈕會發送的路由
     user_input = request.form['command']
-    latest_command["command"] = user_input
-    latest_command["status"] = "pending"  # 等上位機處理
     
-    # 📢 優化：透過 MQTT 發送通知
+    # 1. 儲存指令
+    latest_command["command"] = user_input
+    latest_command["status"] = "pending"  
+    
+    # 2. 📢 透過 MQTT 發送通知給 PC
     try:
+        # 由於這個主題只需要通知事件發生，內容可以很輕量
         publish.single(NOTIFY_TOPIC, "NOTIFY", hostname=MQTT_SERVER)
         print(f"✅ 已透過 MQTT 發送新指令通知到主題：{NOTIFY_TOPIC}")
     except Exception as e:
         print(f"❌ MQTT 通知發送失敗: {e}")
 
-    # result=f"..." 這一行應該在 index.html 模板中處理，但因為您目前的 control 路由回傳 render_template，所以保持現有寫法
-    return render_template('index.html', result=f"📩 指令已送出：{user_input}")
+    # 3. 網頁回應：不再傳遞 result 參數
+    return render_template('index.html')
 
 @app.route('/latest_command')
 def get_command():
+    # 💡 [PC 用] 讓 PC 可以 GET 取得指令
     return jsonify(latest_command)
 
-@app.route('/update_status', methods=['POST'])
-def update_status():
-    data = request.get_json()
-    latest_command["status"] = data.get("status", "unknown")
-    print("🔄 收到上位機回報：", latest_command["status"])
-
-    # ✅ 延遲清空（給前端輪詢時間）
-    def clear_status():
-        time.sleep(5)
-        latest_command["command"] = None
-        latest_command["status"] = "idle"
-        print("🧹 狀態已清空，準備下一指令")
-
-    threading.Thread(target=clear_status).start()
+@app.route('/clear_command', methods=['POST'])
+def clear_command():
+    # 💡 [PC 用] 讓 PC 在處理完畢後，可以 POST 清除 Render 上的指令
+    latest_command["command"] = None
+    latest_command["status"] = "idle"
+    print("🧹 指令已由 PC 上位機清空，準備下一指令")
     return {"result": "ok"}
 
 if __name__ == '__main__':
