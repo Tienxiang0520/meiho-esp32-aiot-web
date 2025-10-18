@@ -5,8 +5,25 @@ import paho.mqtt.publish as publish
 app = Flask(__name__)
 
 # MQTT 設定
-MQTT_SERVER = "broker.hivemq.com" 
+MQTT_SERVER = "broker.hivemq.com"
 NOTIFY_TOPIC = "meiho-aiot-notify/new_command_available"
+CONTROL_TOPIC = "/esp32/led"
+
+
+def translate_to_mqtt_command(text: str):
+    """將使用者輸入轉成 ESP32 可理解的 MQTT 指令。"""
+    normalized = text.strip()
+
+    # 提供幾個常見的中文/英文指令關鍵字
+    on_keywords = ("開燈", "開", "打開", "on", "亮")
+    off_keywords = ("關燈", "關", "關閉", "off", "暗")
+
+    if any(keyword in normalized for keyword in on_keywords):
+        return "LED_ON"
+    if any(keyword in normalized for keyword in off_keywords):
+        return "LED_OFF"
+
+    return None
 
 # 💡 [保留] 最新 AI 指令與狀態 (PC 仍需從這裡 GET 指令)
 latest_command = {"command": None, "status": "idle"}
@@ -24,7 +41,24 @@ def control():
     latest_command["command"] = user_input
     latest_command["status"] = "pending"
 
-    # 2. 📢 透過 MQTT 發送通知給 PC（確保在回傳前執行）
+    # 2. 立即嘗試將指令轉為 ESP32 能理解的 MQTT 命令
+    mqtt_payload = translate_to_mqtt_command(user_input)
+    if mqtt_payload:
+        try:
+            publish.single(CONTROL_TOPIC, mqtt_payload, hostname=MQTT_SERVER)
+            latest_command["status"] = f"dispatched:{mqtt_payload}"
+            print(f"🚀 已直接下發 MQTT 指令到 {CONTROL_TOPIC}: {mqtt_payload}")
+        except Exception as e:
+            error_message = f"❌ 下發 MQTT 指令失敗: {e}"
+            print(error_message)
+            latest_command["status"] = "error"
+            return jsonify({
+                "status": "error",
+                "message": error_message,
+                "command": user_input
+            }), 500
+
+    # 3. 📢 透過 MQTT 發送通知給 PC（確保在回傳前執行）
     try:
         # 由於這個主題只需要通知事件發生，內容可以很輕量
         publish.single(NOTIFY_TOPIC, "NOTIFY", hostname=MQTT_SERVER)
@@ -35,14 +69,16 @@ def control():
         return jsonify({
             "status": "error",
             "message": error_message,
-            "command": user_input
+            "command": user_input,
+            "mqtt_payload": mqtt_payload,
         }), 500
 
-    # 3. 改為回傳 JSON 格式的回應，更穩定
+    # 4. 改為回傳 JSON 格式的回應，更穩定
     return jsonify({
         "status": "success",
         "message": f"📩 指令已送出：{user_input}",
-        "command": user_input
+        "command": user_input,
+        "mqtt_payload": mqtt_payload,
     })
 
 @app.route('/latest_command')
