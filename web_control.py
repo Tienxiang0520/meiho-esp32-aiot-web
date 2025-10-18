@@ -22,30 +22,51 @@ def control():
     
     # 1. 儲存指令
     latest_command["command"] = user_input
-    latest_command["status"] = "pending"  
+    latest_command["status"] = "pending"
 
-    # ✅ 修正：改為回傳 JSON 格式的回應，更穩定
-    return jsonify({
-        "status": "success",
-        "message": f"📩 指令已送出：{user_input}",
-        "command": user_input
-    })
-    
-    # 2. 📢 透過 MQTT 發送通知給 PC
+    # 2. 📢 透過 MQTT 發送通知給 PC（確保在回傳前執行）
     try:
         # 由於這個主題只需要通知事件發生，內容可以很輕量
         publish.single(NOTIFY_TOPIC, "NOTIFY", hostname=MQTT_SERVER)
         print(f"✅ 已透過 MQTT 發送新指令通知到主題：{NOTIFY_TOPIC}")
     except Exception as e:
-        print(f"❌ MQTT 通知發送失敗: {e}")
+        error_message = f"❌ MQTT 通知發送失敗: {e}"
+        print(error_message)
+        return jsonify({
+            "status": "error",
+            "message": error_message,
+            "command": user_input
+        }), 500
 
-    # 3. 網頁回應：不再傳遞 result 參數
-    return render_template('index.html')
+    # 3. 改為回傳 JSON 格式的回應，更穩定
+    return jsonify({
+        "status": "success",
+        "message": f"📩 指令已送出：{user_input}",
+        "command": user_input
+    })
 
 @app.route('/latest_command')
 def get_command():
     # 💡 [PC 用] 讓 PC 可以 GET 取得指令
     return jsonify(latest_command)
+
+@app.route('/command_status', methods=['POST'])
+def update_command_status():
+    """💡 [PC 用] 更新最新指令的狀態（例如：done、processing 等）"""
+    data = request.get_json(silent=True) or {}
+    status = data.get("status")
+
+    if not status:
+        return jsonify({"error": "status is required"}), 400
+
+    latest_command["status"] = status
+
+    if "command" in data:
+        latest_command["command"] = data["command"]
+
+    print(f"🔄 指令狀態已更新為：{status}")
+    return jsonify({"result": "ok", "latest_command": latest_command})
+
 
 @app.route('/clear_command', methods=['POST'])
 def clear_command():
