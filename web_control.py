@@ -23,6 +23,13 @@ def control():
     # 1. 儲存指令
     latest_command["command"] = user_input
     latest_command["status"] = "pending"  
+
+    # ✅ 修正：改為回傳 JSON 格式的回應，更穩定
+    return jsonify({
+        "status": "success",
+        "message": f"📩 指令已送出：{user_input}",
+        "command": user_input
+    })
     
     # 2. 📢 透過 MQTT 發送通知給 PC
     try:
