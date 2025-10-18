@@ -7,7 +7,7 @@
     "url": "http://localhost:11434/api/chat",
     "model": "phi3:mini",
     "options": {
-      "num_predict": 40,
+      "num_predict": 30,
       "temperature": 0.2,
       "repeat_penalty": 1.2
     }
