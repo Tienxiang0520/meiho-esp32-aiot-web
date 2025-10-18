@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const sendBtn = document.getElementById("sendBtn");
   const commandInput = document.getElementById("commandInput");
   const statusBox = document.getElementById("status");
+  let hardwareAckReceived = false;
 
   // 1. MQTT 客戶端設定 (使用 WebSocket 連接)
   const MQTT_SERVER = "broker.hivemq.com";
@@ -33,9 +34,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (message.destinationName === STATUS_TOPIC) {
       const payload = message.payloadString;
       console.log("🔔 Received Status: " + payload);
-      
+
       // 實時更新狀態
       if (payload.includes("done")) {
+        hardwareAckReceived = true;
         statusBox.innerHTML = `<p>✅ 硬體回報：${payload}</p>`;
       }
     }
@@ -55,6 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const originalText = sendBtn.textContent;
     sendBtn.textContent = "處理中...";
     statusBox.innerHTML = "<p>🧠 AI 正在思考中... (等待硬體實時回覆)</p>";
+    hardwareAckReceived = false;
 
     try {
       // === 第一步：送出指令給 Flask (現在預期是 JSON) ===
@@ -71,19 +74,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // ✅ 修正：處理 JSON 回應，而不是解析 HTML
       const data = await response.json(); 
-      const newResultMessage = data.message || "指令送出成功。"; 
+      const newResultMessage = data.message || "指令送出成功。";
+      const resolvedCommand = data.resolved_command;
 
       // ✅ 修正：直接更新狀態框
       statusBox.innerHTML = `<p>${newResultMessage}</p><p>📡 等待上位機處理中...</p>`;
+      if (resolvedCommand) {
+        statusBox.innerHTML += `<p>🛠️ 轉換後的硬體指令：${resolvedCommand}</p>`;
+      }
 
       // === 第二步：輪詢狀態直到完成 (保持原有邏輯) ===
       let success = false;
       for (let i = 0; i < 15; i++) { // 最多等 15 秒
         const res = await fetch("/latest_command");
-        const polling_data = await res.json(); 
+        const polling_data = await res.json();
         if (polling_data.status && polling_data.status.includes("done")) {
           success = true;
           statusBox.innerHTML += `<p>✅ 上位機回報：${polling_data.status}</p>`;
+          break;
+        }
+        if (hardwareAckReceived) {
+          success = true;
           break;
         }
         await new Promise(r => setTimeout(r, 1000)); // 每秒查一次
