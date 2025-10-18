@@ -51,10 +51,9 @@ def send_mqtt(cmd):
     try:
         # 將主題替換為您的實際主題
         publish.single(CONTROL_TOPIC, cmd, hostname=MQTT_SERVER)
-        print(f"✅ 已發送 MQTT 指令：{cmd}")
-        # 回報到 Render
-        requests.post("https://meiho-esp32-aiot-web.onrender.com/update_status",
-                      json={"status": f"{cmd} done"})
+        print(f"✅ 已發送 MQTT 指令：{cmd}")             
+        # 💡 [建議新增] 提醒：狀態回報現在應由 ESP32 完成
+        print("💡 上位機已完成任務，請確保 ESP32 成功執行後發送狀態到 MQTT。")
     except Exception as e:
         print("❌ MQTT 發送失敗：", e)
 
